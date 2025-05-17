@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Полная 3D Сцена</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #soundControl {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0,255,255,0.3);
+            border: 1px solid #00ffff;
+            color: white;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        /* Стили для кнопки портфолио */
+        #leetBtn {
+            position: fixed;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #000000 0%, #003333 100%);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            text-decoration: none;
+            text-shadow: 0 0 10px #00ffaa;
+            box-shadow: 0 0 20px #00ffaa80;
+            cursor: pointer;
+            z-index: 666;
+        }
+        .glow {
+            color: #00ff99;
+            font-size: 1.5em;
+            display: block;
+            animation: glitch 1s infinite;
+        }
+        .sub {
+            color: #00ffff;
+            font-size: 0.8em;
+            display: block;
+            margin-top: 5px;
+        }
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 #ff0033; }
+            50% { transform: skew(5deg); }
+            100% { text-shadow: -2px 0 #00ffff; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+</head>
+<body>
+    <button id="soundControl">♪ Включить звук</button>
+    <a href="#" id="leetBtn">
+        <span class="glow">[ NIHMA v4.20 ]</span>
+        <span class="sub">Докс×Сват×Деанон</span>
+    </a>
+
+    <audio id="bgMusic" loop>
+        <source src="https://cdn4.deliciouspeaches.com/get/music/20241202/UdieNnx_-_ACIDO_78651928.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // Инициализация сцены
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        let sphere, textGroup, particles, wireframe;
+        let angle = 0;
+        const orbitRadius = 5;
+
+        // Настройка рендерера
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        camera.position.z = 15;
+
+        // Создание сферы
+        const createSphere = () => {
+            const geometry = new THREE.SphereGeometry(3, 64, 64);
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x0099ff,
+                transparent: true,
+                opacity: 0.7
+            });
+
+            const wireMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                wireframe: true
+            });
+
+            sphere = new THREE.Mesh(geometry, material);
+            wireframe = new THREE.Mesh(geometry, wireMaterial);
+            scene.add(sphere);
+            scene.add(wireframe);
+        };
+
+        // Частицы
+        const createParticles = () => {
+            const geometry = new THREE.BufferGeometry();
+            const posArray = new Float32Array(2000 * 3);
+
+            for(let i = 0; i < 2000 * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 50;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const material = new THREE.PointsMaterial({
+                size: 0.05,
+                color: 0x00ffff,
+                transparent: true
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+        };
+
+        // 3D Текст
+        const createText = () => {
+            textGroup = new THREE.Group();
+            new THREE.FontLoader().load(
+                'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_regular.typeface.json', 
+                font => {
+                    const textMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffff });
+
+                    const text1 = new THREE.TextGeometry('NIHMA', {
+                        font: font,
+                        size: 1.2,
+                        height: 0.3
+                    });
+                    text1.center();
+                    const textMesh1 = new THREE.Mesh(text1, textMaterial);
+                    textMesh1.position.set(0, 2, 0);
+
+                    const text2 = new THREE.TextGeometry('Best dokser', {
+                        font: font,
+                        size: 0.6,
+                        height: 0.2
+                    });
+                    text2.center();
+                    const textMesh2 = new THREE.Mesh(text2, textMaterial);
+                    textMesh2.position.set(0, -1, 0);
+
+                    textGroup.add(textMesh1, textMesh2);
+                    scene.add(textGroup);
+                }
+            );
+        };
+
+        // Освещение
+        const setupLights = () => {
+            const light = new THREE.PointLight(0xffffff, 1.5);
+            light.position.set(10, 10, 15);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040));
+        };
+
+        // Управление звуком
+        const audio = document.getElementById('bgMusic');
+        document.getElementById('soundControl').addEventListener('click', () => {
+            audio.paused ? audio.play().catch(() => alert("Разрешите звук")) : audio.pause();
+        });
+
+        // Обработчик кнопки портфолио
+        document.getElementById('leetBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Эффект взрыва частиц
+            const positions = particles.geometry.attributes.position.array;
+            for(let i = 0; i < positions.length; i++) {
+                positions[i] *= 1.5;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+            
+            setTimeout(() => {
+                window.open('https://dildjakaa.github.io/doksbin2/', '_blank');
+            }, 1000);
+        });
+
+        // Вращение элементов
+        document.addEventListener('mousemove', (e) => {
+            const targetX = (e.clientX / window.innerWidth) * 4;
+            const targetY = (e.clientY / window.innerHeight) * 4;
+            
+            if(sphere) {
+                sphere.rotation.x = targetY;
+                sphere.rotation.y = targetX;
+                wireframe.rotation.copy(sphere.rotation);
+            }
+        });
+
+        // Адаптация к размеру окна
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Анимация частиц
+        const animateParticles = () => {
+            const positions = particles.geometry.attributes.position.array;
+            const time = Date.now() * 0.0005;
+            
+            for(let i = 0; i < 2000; i++) {
+                const i3 = i * 3;
+                positions[i3] += Math.sin(time + i) * 0.02;
+                positions[i3 + 1] += Math.cos(time + i) * 0.02;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+        };
+
+        // Главный цикл
+        const animate = () => {
+            requestAnimationFrame(animate);
+            animateParticles();
+            
+            angle += 0.02;
+            textGroup.position.x = Math.sin(angle) * orbitRadius;
+            textGroup.position.z = Math.cos(angle) * orbitRadius;
+            textGroup.position.y = Math.sin(angle * 0.5) * 2;
+            textGroup.lookAt(camera.position);
+            
+            renderer.render(scene, camera);
+        };
+
+        // Инициализация
+        createSphere();
+        createParticles();
+        createText();
+        setupLights();
+        animate();
+    </script>
+</body>
+</html>
